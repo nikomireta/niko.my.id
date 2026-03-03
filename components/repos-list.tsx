@@ -16,6 +16,10 @@ interface Repo {
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const GITHUB_USERNAME =
+  process.env.NEXT_PUBLIC_GITHUB_USERNAME?.trim().replace(/^@/, "") ||
+  "nikomilala"
+const GITHUB_PROFILE_URL = `https://github.com/${GITHUB_USERNAME}`
 
 const langColor: Record<string, string> = {
   TypeScript: "bg-blue-400",
@@ -45,7 +49,7 @@ export function ReposList() {
           <span className="font-mono text-xs">repos</span>
         </div>
         <a
-          href="https://github.com/nikomilala"
+          href={GITHUB_PROFILE_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="text-muted-foreground hover:text-foreground transition-colors"
@@ -68,7 +72,7 @@ export function ReposList() {
           <div className="flex flex-col items-center justify-center py-8 gap-1.5 text-muted-foreground">
             <span className="font-mono text-xs">unable to load repos</span>
             <a
-              href="https://github.com/nikomilala"
+              href={GITHUB_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-xs text-primary hover:underline"

@@ -24,4 +24,5 @@ Open `http://localhost:3000`.
 Copy `.env.example` to `.env.local` and adjust values:
 
 - `NEXT_PUBLIC_CV_URL`: CV link shown in profile card. If it starts with `/`, it will be treated as a local downloadable file.
+- `NEXT_PUBLIC_GITHUB_USERNAME`: GitHub username used for profile links and repository fetching in `/api/github`.
 - `GITHUB_TOKEN` (optional): GitHub token for higher API rate limits when fetching repositories in `/api/github`.

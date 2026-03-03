@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 
-const GITHUB_USERNAME = "nikomilala"
+const GITHUB_USERNAME =
+  process.env.NEXT_PUBLIC_GITHUB_USERNAME?.trim().replace(/^@/, "") ||
+  "nikomilala"
 const REVALIDATE_SECONDS = 3600
 const REQUEST_TIMEOUT_MS = 8000
 

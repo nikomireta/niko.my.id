@@ -2,12 +2,16 @@ import { Terminal, FileDown, Linkedin, Github, Mail } from "lucide-react"
 
 const skills = [
   "Docker", "Kubernetes", "Terraform", "AWS", "GCP",
-  "Linux", "Nginx", "CI/CD", "Python", "Go", "Bash", "Git",
+  "Linux", "Nginx", "CI/CD", "Python", "PHP", "Bash", "Git",
 ]
 
 const CV_URL =
   process.env.NEXT_PUBLIC_CV_URL?.trim() || "https://linkedin.com/in/nikomilala"
 const isLocalCv = CV_URL.startsWith("/")
+const GITHUB_USERNAME =
+  process.env.NEXT_PUBLIC_GITHUB_USERNAME?.trim().replace(/^@/, "") ||
+  "nikomilala"
+const GITHUB_PROFILE_URL = `https://github.com/${GITHUB_USERNAME}`
 
 export function ProfileCard() {
   return (
@@ -79,7 +83,7 @@ export function ProfileCard() {
             LinkedIn
           </a>
           <a
-            href="https://github.com/nikomilala"
+            href={GITHUB_PROFILE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
