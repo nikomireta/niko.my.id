@@ -5,19 +5,21 @@ Portfolio site built with Next.js App Router, TypeScript, and Tailwind CSS.
 ## Run locally
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open `http://localhost:3000`.
 
 ## Scripts
 
-- `npm run dev`: start development server
-- `npm run typecheck`: run TypeScript checks
-- `npm run lint`: run ESLint
-- `npm run build`: typecheck + production build
-- `npm run start`: run production server
+- `pnpm run dev`: start development server
+- `pnpm run typecheck`: run TypeScript checks
+- `pnpm run lint`: run ESLint
+- `pnpm run build`: typecheck + production build
+- `pnpm run start`: run production server
+
+Use `pnpm` (not `npm`) for installs and lockfile updates to keep CI/Vercel builds reproducible.
 
 ## Environment variables
 
