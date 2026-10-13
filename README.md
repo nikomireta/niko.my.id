@@ -1,6 +1,6 @@
 # DevOps Engineer Portfolio
 
-Portfolio site built with Next.js App Router, TypeScript, and Tailwind CSS.
+Portfolio site built with Next.js App Router, TypeScript, Tailwind CSS, and Motion for React.
 
 ## Run locally
 
@@ -10,6 +10,16 @@ pnpm run dev
 ```
 
 Open `http://localhost:3000`.
+
+## Portfolio windows
+
+- On desktop (1024px and wider), drag a window's title bar to move it. Focus the title bar and use arrow keys to move it with a keyboard; hold Shift for larger steps.
+- The red, yellow, and green controls close, minimize, and maximize/restore each window.
+- Use the bottom dock to focus or reopen a window. Minimize preserves its position and maximized state; reopening a closed window resets it.
+- Smaller screens use stacked cards with the same controls and dock. Maximized windows stay above the stack, with scrollable content.
+- Window layout is temporary and resets on refresh.
+- Motion handles drag, maximize/restore, minimize to the dock, and close transitions. Minimized content stays mounted; closed content unmounts after its exit animation.
+- The dark glass desktop respects the system's reduced-motion preference, using short fades instead of movement and scale animations.
 
 ## Scripts
 

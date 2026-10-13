@@ -1,7 +1,7 @@
 "use client"
 
 import useSWR from "swr"
-import { Star, ExternalLink, Github, Loader2 } from "lucide-react"
+import { ArrowUpRight, Github, Star, Loader2 } from "lucide-react"
 
 interface Repo {
   id: number
@@ -41,89 +41,32 @@ export function ReposList() {
   })
 
   return (
-    <div className="w-full max-w-xl rounded-lg border border-border bg-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border bg-secondary px-4 py-2.5">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Github className="size-3" />
-          <span className="font-mono text-xs">repos</span>
+    <div className="repos-content">
+      <p className="repo-caption">Public repositories / GitHub</p>
+      {isLoading && (
+        <div className="repo-state" role="status"><Loader2 className="animate-spin" aria-hidden="true" /><span>fetching...</span></div>
+      )}
+      {(error || (data && !Array.isArray(data))) && (
+        <div className="repo-state" role="status">
+          <Github aria-hidden="true" /><span>unable to load repos</span>
+          <a href={GITHUB_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-primary">view on github</a>
         </div>
-        <a
-          href={GITHUB_PROFILE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="View all on GitHub"
-        >
-          <ExternalLink className="size-3" />
+      )}
+      {data && Array.isArray(data) && data.length === 0 && (
+        <div className="repo-state"><Github aria-hidden="true" /><span>no public repos yet</span></div>
+      )}
+      {data && Array.isArray(data) && data.slice(0, 6).map((repo) => (
+        <a key={repo.id} href={repo.url} target="_blank" rel="noopener noreferrer" className="repo-row">
+          <div className="repo-row-heading"><span>{repo.name}</span><ArrowUpRight aria-hidden="true" /></div>
+          {repo.description && <p className="repo-description line-clamp-2">{repo.description}</p>}
+          {(repo.language || repo.stars > 0) && (
+            <div className="repo-meta">
+              {repo.language && <span><span className={`size-1.5 rounded-full ${langColor[repo.language] || "bg-muted-foreground"}`} />{repo.language}</span>}
+              {repo.stars > 0 && <span><Star aria-hidden="true" />{repo.stars}</span>}
+            </div>
+          )}
         </a>
-      </div>
-
-      {/* Repo list */}
-      <div className="divide-y divide-border max-h-64 overflow-y-auto">
-        {isLoading && (
-          <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin text-primary" />
-            <span className="font-mono text-xs">fetching...</span>
-          </div>
-        )}
-
-        {(error || (data && !Array.isArray(data))) && (
-          <div className="flex flex-col items-center justify-center py-8 gap-1.5 text-muted-foreground">
-            <span className="font-mono text-xs">unable to load repos</span>
-            <a
-              href={GITHUB_PROFILE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-xs text-primary hover:underline"
-            >
-              view on github
-            </a>
-          </div>
-        )}
-
-        {data && Array.isArray(data) && data.length === 0 && (
-          <div className="flex items-center justify-center py-8 text-muted-foreground">
-            <span className="font-mono text-xs">no public repos yet</span>
-          </div>
-        )}
-
-        {data &&
-          Array.isArray(data) &&
-          data.slice(0, 6).map((repo) => (
-            <a
-              key={repo.id}
-              href={repo.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-secondary/50 transition-colors group"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {repo.language && (
-                  <span
-                    className={`size-2 rounded-full shrink-0 ${langColor[repo.language] || "bg-muted-foreground"}`}
-                  />
-                )}
-                <span className="font-mono text-xs text-card-foreground group-hover:text-primary transition-colors truncate">
-                  {repo.name}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 shrink-0 text-muted-foreground">
-                {repo.stars > 0 && (
-                  <span className="flex items-center gap-0.5 text-xs">
-                    <Star className="size-2.5" />
-                    {repo.stars}
-                  </span>
-                )}
-                {repo.language && (
-                  <span className="font-mono text-xs hidden sm:inline">
-                    {repo.language}
-                  </span>
-                )}
-              </div>
-            </a>
-          ))}
-      </div>
+      ))}
     </div>
   )
 }
