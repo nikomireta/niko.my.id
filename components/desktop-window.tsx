@@ -58,7 +58,7 @@ function WindowSurface({
   const reduced = useReducedMotion()
   const present = useIsPresent()
   const maximized = state.mode === "maximized"
-  const interactive = present && state.visibility === "visible"
+  const interactive = present && state.visibility === "visible" && (desktop || active)
   const movable = interactive && desktop && !maximized && state.position !== null
   const baseX = state.position?.x ?? 0
   const baseY = state.position?.y ?? 0
@@ -130,7 +130,7 @@ function WindowSurface({
   return (
     <motion.div className="window-slot" data-window={id} data-mode={state.mode}
       data-positioned={desktop && state.position !== null} hidden={concealed}
-      layout={!reduced} layoutRoot={!desktop && maximized}
+      layout={!reduced}
       transition={{ layout: layoutTransition }}
       style={{ "--window-width": `${width}px`, zIndex: layer,
         ...(desktop && !maximized && state.position ? { left: baseX, top: baseY } : {}),

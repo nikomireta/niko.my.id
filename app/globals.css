@@ -205,6 +205,21 @@
 .dock-button[data-active="true"] .dock-indicator { background: #6ee7cd; }
 .dock-button[data-state="closed"] .dock-indicator { visibility: hidden; }
 @media (hover: none) { .window-control svg { opacity: 1; } }
+@media (max-width: 1023px) {
+  .desktop { height: 100dvh; min-height: 0; overflow: hidden; }
+  .desktop-workspace { display: block; height: var(--workspace-height); min-height: 0; padding: 0; }
+  .window-slot {
+    position: absolute; inset: 12px 12px auto; width: auto; max-width: none;
+    max-height: calc(var(--workspace-height) - 24px);
+  }
+  .window-slot[data-window="repos"] { top: 28px; max-height: calc(var(--workspace-height) - 40px); }
+  .window-slot[data-mode="maximized"] { position: absolute; inset: 12px; height: auto; max-height: none; }
+  .window-content { overflow-x: hidden; overflow-y: auto; touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch; }
+  .desktop-window[data-active="false"][data-visibility="visible"]::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: rgb(11 17 27 / 30%); pointer-events: none;
+  }
+}
 @media (min-width: 1024px) {
   .desktop-workspace { height: var(--workspace-height); flex-direction: row; align-items: flex-start; gap: 24px; }
   .window-slot { width: var(--window-width); }

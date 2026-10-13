@@ -13,6 +13,7 @@ const EDGE = 12
 const GAP = 24
 const GITHUB_USERNAME = process.env.NEXT_PUBLIC_GITHUB_USERNAME?.trim().replace(/^@/, "") || "nikomilala"
 interface DesktopState {
+  initialized: boolean
   desktop: boolean
   bounds: { width: number; height: number }
   windows: Record<WindowId, WindowState>
@@ -32,10 +33,10 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
   const geometry = useRef({ width: 0, height: 0, heights: { profile: 0, repos: 360 } })
   const reduced = useReducedMotion()
   const [state, setState] = useState<DesktopState>({
-    desktop: false, bounds: { width: 0, height: 0 },
+    initialized: false, desktop: false, bounds: { width: 0, height: 0 },
     windows: {
       profile: { visibility: "visible", mode: "normal", position: null, height: 0, revision: 0, action: "move" },
-      repos: { visibility: "visible", mode: "normal", position: null, height: 360, revision: 0, action: "move" },
+      repos: { visibility: "closed", mode: "normal", position: null, height: 360, revision: 0, action: "move" },
     },
     order: ["repos", "profile"],
   })
@@ -69,8 +70,12 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
         }
       }
       setState((previous) => {
-        let changed = previous.desktop !== desktop || previous.bounds.width !== width || previous.bounds.height !== height
+        let changed = !previous.initialized || previous.desktop !== desktop || previous.bounds.width !== width || previous.bounds.height !== height
         const windows = { ...previous.windows }
+        // Choose startup defaults once; resizing must preserve the user's windows.
+        if (!previous.initialized && desktop) {
+          windows.repos = { ...windows.repos, visibility: "visible" }
+        }
         for (const id of WINDOW_IDS) {
           const current = windows[id]
           const position = desktop ? clampPosition(id, current.position ?? defaultPosition(id)) : current.position
@@ -80,7 +85,7 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
             changed = true
           }
         }
-        return changed ? { ...previous, desktop, bounds: { width, height }, windows } : previous
+        return changed ? { ...previous, initialized: true, desktop, bounds: { width, height }, windows } : previous
       })
     })
     observerRef.current = observer
@@ -126,6 +131,16 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
   function openWindow(id: WindowId) {
     setState((previous) => {
       const current = previous.windows[id]
+      const active = previous.order.filter((item) => previous.windows[item].visibility === "visible").at(-1)
+      if (current.visibility === "visible" && active === id) {
+        return {
+          ...previous,
+          windows: {
+            ...previous.windows,
+            [id]: { ...current, visibility: "minimized", revision: current.revision + 1, action: "visibility" },
+          },
+        }
+      }
       return {
         ...previous, order: bringForward(previous.order, id),
         windows: {
@@ -139,9 +154,8 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
     })
     requestAnimationFrame(() => {
       const element = windowElements.current[id]
-      if (element?.dataset.visibility !== "visible") return
+      if (element?.dataset.visibility !== "visible" || element.dataset.active !== "true") return
       element.focus({ preventScroll: true })
-      if (!state.desktop && element.dataset.mode === "normal") element.scrollIntoView({ block: "nearest", behavior: "instant" })
     })
   }
   function toggleMaximize(id: WindowId) {
@@ -159,7 +173,7 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
     repos: { label: "Repos", title: "repos", icon: <Github aria-hidden="true" />, content: repos },
   }
   return (
-    <main className="desktop">
+    <main className="desktop" data-initialized={state.initialized}>
       <header className="desktop-menubar">
         <Link href="/" className="desktop-brand"><Terminal aria-hidden="true" /><span>niko<span className="text-primary">.my.id</span></span></Link>
         <span className="desktop-role">DevOps Engineer <span aria-hidden="true">/</span> Sysadmin</span>
@@ -185,11 +199,11 @@ function DesktopWorkspace({ profile, repos }: { profile: ReactNode; repos: React
       <nav className="window-dock" aria-label="Window dock">
         {WINDOW_IDS.map((id) => {
           const current = state.windows[id], active = activeId === id
-          const action = current.visibility === "closed" ? "Open" : current.visibility === "minimized" ? "Restore" : "Focus"
+          const action = current.visibility === "closed" ? "Open" : current.visibility === "minimized" ? "Restore" : active ? "Minimize" : "Focus"
           return (
             <motion.button key={id} ref={(element) => { dockElements.current[id] = element }} type="button" tabIndex={0} className="dock-button"
               data-active={active} data-state={current.visibility} aria-label={`${action} ${definitions[id].label}`}
-              aria-controls={`window-${id}`} aria-current={active ? "true" : undefined} title={`${action} ${definitions[id].label}`}
+              aria-controls={current.visibility === "closed" ? undefined : `window-${id}`} aria-current={active ? "true" : undefined} title={`${action} ${definitions[id].label}`}
               onClick={() => openWindow(id)} whileHover={reduced ? undefined : { y: -4, scale: 1.04 }}
               whileTap={reduced ? undefined : { scale: 0.96 }} transition={WINDOW_SPRING}
             >
