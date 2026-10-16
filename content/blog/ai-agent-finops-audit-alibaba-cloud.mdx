@@ -1,0 +1,89 @@
+---
+title: 'Using an AI agent for an Alibaba Cloud FinOps audit'
+date: '2026-10-16'
+type: case-study
+summary: 'A practical look at using an AI agent with a FinOps skill to inspect Alibaba Cloud resources, check the findings, and propose ECS and RDS capacity tests.'
+draft: false
+tags:
+  - ai-agents
+  - finops
+  - alibaba-cloud
+  - ecs
+  - rds
+stack:
+  - AI agent
+  - alibabacloud-finops-inspect
+  - Alibaba Cloud
+  - ECS
+  - RDS
+  - CloudMonitor
+---
+
+I used an AI agent with the `alibabacloud-finops-inspect` skill to review an Alibaba Cloud environment for possible cost optimization. I wanted to understand which resources deserved attention and what evidence was needed before changing their capacity.
+
+[Alibaba Cloud Skills](https://skills.alibabacloud.com/) provides cloud skills for AI agents. A skill packages instructions, scripts, and references for a task, giving the agent a workflow it can load when needed. Alibaba Cloud explains this model in its [Skills Portal overview](https://www.alibabacloud.com/help/en/skillsportal/learn-about-the-alibaba-cloud-agent-skills-portal).
+
+For this audit, the agent helped collect inventory and metrics, work through inspection errors, and organize capacity recommendations. The findings still needed review, especially where data was missing or the collection logic was wrong.
+
+<Callout title="Read-only audit">
+
+The audit was recorded on October 16, 2026. No cloud resources or RAM policies were changed. Metrics are a seven-day average snapshot of available samples, aggregated hourly. Resource names below are anonymized. Proposed specifications are test candidates; savings and performance effects have not been measured.
+
+</Callout>
+
+## Getting reliable results from the agent
+
+The first runs encountered RAM permission denials. A denied request had to remain an incomplete check, rather than being interpreted as an empty inventory or an idle resource.
+
+The local inspection script also needed fixes for the installed SDK: RDS attributes, CLB status handling, ALB listener filters, and CLB pagination. After the listener filter was corrected, one ALB previously marked idle no longer belonged in that category. That changed a recommendation without changing the cloud resource.
+
+Four service-region pairs remained uninspected because the reviewed official references did not list endpoints for them. Missing memory metrics were kept as N/A. The final run had no unresolved API or SDK errors, but these coverage limits still applied. Code review found 15 SDK methods, all `Describe` or `List` operations, and six local regression tests passed.
+
+## What the audit covered
+
+The inspection requested 31 regions and returned 83 resources with 56 review candidates across services. Disk inspection covered only unattached data disks, so this was not a complete inventory of every disk.
+
+| Service | Inventory | Resources with individual details |
+| --- | ---: | ---: |
+| ECS | 35 | 31 |
+| RDS | 10 | 9 |
+
+The remaining four ECS instances and one RDS instance had no individual details in the report. Their condition cannot be inferred from the candidate tables.
+
+Five ECS instances lacked memory datapoints; four appeared in the detailed findings. Three RDS instances averaged more than 65% memory usage. A Serverless RDS instance also needed separate evaluation because its SCU limits and consumption were not recorded.
+
+Outside ECS and RDS, the report flagged 12 unattached disks totaling 480 GB, three unbound EIPs, and one CLB without listeners. Ownership, dependencies, and recovery needs still required confirmation before any retirement proposal.
+
+## Low CPU did not always mean spare capacity
+
+The inspection used CPU below 10% or memory below 20% to flag review candidates. Either condition could trigger a finding. It was a useful filter, but insufficient for choosing a smaller instance.
+
+RDS-B averaged 7.38% CPU and 83.21% memory. Reducing its RAM would need a much closer look at cache, peak demand, I/O, and latency. ECS-C used 59.09% of its 8 GiB RAM despite averaging only 3.19% CPU, so its recommendation kept memory unchanged.
+
+The capacity report proposed these examples:
+
+| Alias | Current capacity | Candidate for testing | Main condition |
+| --- | --- | --- | --- |
+| ECS-A | 4 vCPU / 8 GiB | 2 vCPU / 4 GiB | Average CPU was 2.90% and memory 13.49%; validate peaks and network throughput. |
+| ECS-C | 4 vCPU / 8 GiB | 2 vCPU / 8 GiB | Keep RAM; validate P95 usage, latency, and target SKU limits. |
+| RDS-A | 8 cores / 16 GB | 4 cores / 16 GB | Average CPU was 1.63% and memory 45.09%; confirm engine, edition, storage, and SKU compatibility. |
+| RDS-B | 4 cores / 8 GB | Retain current capacity | Hold resize while investigating high memory usage. |
+
+ECS uses GiB and RDS uses GB, following the specification reports. These targets have not been applied.
+
+For RDS-A, halving RAM would produce a linear usage proxy of 90.18%. The report therefore kept 16 GB while proposing fewer CPU cores. Such calculations help screen candidates; they do not predict latency or prove that a resize will work. Local SSD dependencies and missing memory data also remained reasons to hold changes.
+
+## What I would validate next
+
+I would collect 14 to 30 days of P95 and peak metrics, including busy hours, backups, and batch work. A controlled test needs agreed service limits, monitoring for errors, OOM events, queues, I/O, and latency, plus rollback to the original class. RDS cache behavior and Serverless SCU consumption need their own checks.
+
+Cost estimates also need actual regional prices, subscription commitments, migration costs, and backup charges. Fewer CPU cores do not establish a proportional reduction in the bill.
+
+The agent and FinOps skill helped connect resource inspection with capacity analysis. The corrected ALB finding was the clearest lesson for me: reviewing how the agent collected its evidence could change the recommendation. The next step is to validate candidates with service owners and run a controlled test before proposing production changes.
+
+## References
+
+- [Alibaba Cloud Agent Skills Portal](https://skills.alibabacloud.com/): discover cloud skills for AI agents.
+- [Skills Portal overview](https://www.alibabacloud.com/help/en/skillsportal/learn-about-the-alibaba-cloud-agent-skills-portal): how skills package task instructions, scripts, and references.
+
+Audit figures and capacity candidates come from the October 16, 2026 FinOps audit and its ECS/RDS condition and specification reports. The private reports are not published here.

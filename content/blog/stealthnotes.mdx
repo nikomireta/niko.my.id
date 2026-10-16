@@ -1,0 +1,68 @@
+---
+title: 'StealthNotes: keeping tutorial scripts out of screen recordings'
+date: '2026-10-13'
+type: case-study
+summary: A local Windows notes app built to keep a tutorial script readable during recording, with ghost mode that requests capture exclusion and lets clicks pass through to the application underneath.
+role: Creator and developer
+stack:
+  - C#
+  - .NET 10
+  - WinForms
+  - Win32 API
+  - SQLite
+tags:
+  - windows
+  - desktop-apps
+  - screen-recording
+links:
+  - label: Source on GitHub
+    href: https://github.com/nikomireta/stealthnotes
+  - label: Capture verification
+    href: https://github.com/nikomireta/stealthnotes/blob/main/docs/VERIFICATION.md
+---
+
+I built StealthNotes because I wanted to read notes or a script while recording tutorials for YouTube. A regular notes window could end up in the recording, where it would distract from the application I was demonstrating.
+
+The idea was to keep the script on my screen while leaving it out of the captured view. StealthNotes is a local Windows sticky-notes app built around that workflow.
+
+## Reading while demonstrating
+
+A note stays above other windows and can be moved or resized to fit beside the part of the application being demonstrated. Adjustable opacity helps keep the underlying screen visible.
+
+Ghost mode adds click-through behavior. Mouse input goes to the application underneath, so the note can remain in place while the demonstration continues. Editing becomes unavailable through the note itself while ghost mode is on; a global shortcut or the notes list provides a way back to normal input.
+
+The default `Ctrl + Alt + G` shortcut toggles ghost mode for a note. A separate shortcut hides or shows open notes. These controls let the recording workflow switch between reading, editing, and clearing the screen.
+
+## A native Windows implementation
+
+The app uses C# with WinForms on .NET 10. Native text controls handle editing, while Win32 interop controls the note window's capture affinity and mouse behavior.
+
+Ghost mode calls `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE`. It also applies layered, topmost, click-through, and no-activation window styles. Capture exclusion and click-through solve different parts of the workflow: one requests that the note be left out of supported capture paths, while the other lets the demonstration receive mouse input.
+
+The implementation reads back the requested affinity and window styles. If configuration fails, the note window attempts to restore normal input and reports an error. This gives the user a recovery path when ghost mode cannot be applied.
+
+## Keeping the script useful
+
+Rich-text formatting supports emphasis and bullet points, so a script can be broken into prompts that are easier to scan. Pictures can be pasted, dropped, or imported into a note. They sit above the text in one scrolling document, with the header and formatting toolbar outside the scroll area.
+
+The notes list provides search and preview cards for reopening saved notes. Ghost notes use redacted previews, including their accessible list text, so opening the list does not display the script through a second surface.
+
+Closing a note with content keeps it in the list. Empty drafts are discarded. Startup restores the notes left open, which fits returning to a recording script without opening every saved note.
+
+## Local storage
+
+SQLite stores the text, formatting, images, and note settings locally. Autosave uses a 500 ms debounce and a serialized writer with transactions. Failed writes produce a visible "Not saved" indicator.
+
+Notes stay in a plaintext local database. The application has no accounts, cloud sync, or telemetry.
+
+## Capture checks and limits
+
+The project's verification record includes user-reported successful ghost-mode checks in OBS, Recordly, screenshots, Google Meet, Zoom, and Microsoft Teams. The exact build and capture modes were not recorded with those reports.
+
+Earlier prototype tests also found differences between capture paths. Some OBS display-capture checks passed, while existing window-capture sources could retain a pre-ghost image. A fresh Windows Graphics Capture source passed in that prototype.
+
+<Callout title="Check the recording setup">
+
+StealthNotes targets Windows 11 x64. Ghost mode is not guaranteed for every recorder or screen-sharing mode. Check the actual capture source before recording a tutorial, especially after changing tools or source settings.
+
+</Callout>

@@ -1,0 +1,78 @@
+---
+title: Moodle on Alibaba Cloud ACK
+date: '2026-03-03'
+type: case-study
+summary: A Terraform and Kubernetes blueprint for Moodle, with PostgreSQL connection pooling, separate Redis clusters, and shared file storage on Alibaba Cloud.
+stack:
+  - Terraform
+  - Alibaba Cloud ACK
+  - Kubernetes
+  - Moodle
+  - PostgreSQL
+  - PgBouncer
+  - Redis
+  - NAS
+  - OSS
+featured: true
+links:
+  - label: Source on GitHub
+    href: https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint
+---
+
+This project defines a Moodle deployment on Alibaba Cloud using Terraform and Kubernetes manifests. ACK runs the application, RDS PostgreSQL holds its database, and NAS provides a shared `moodledata` directory. Separate workloads handle web requests and Moodle cron jobs.
+
+The repository includes infrastructure definitions, Docker images for Moodle and PgBouncer, and a deployment guide that covers bootstrap access, image updates, and common operational problems.
+
+<Callout title="Capacity target">
+
+The template has a design target of 150,000 concurrent users. The repository does not provide load-test evidence for that capacity. Readiness checks and staged load testing are still required before making a concurrency claim.
+
+</Callout>
+
+## Keeping application state outside the web pods
+
+The web deployment mounts NAS through a persistent volume claim, so its `moodledata` directory is shared between replicas. Local cache files use an in-memory `emptyDir` volume inside each pod.
+
+Redis has separate clusters for sessions and application caches. Moodle's configuration uses the Redis cluster session handler, while its cache setup maps application and session cache modes to the cache cluster.
+
+ObjectFS can move file objects to an OSS-compatible backend. NAS remains part of the deployment when ObjectFS is enabled. Terraform also includes RAM credentials and an access policy scoped to the configured bucket and object prefix.
+
+The [storage definitions](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/infra/storage.tf) and [Moodle configuration](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/images/moodle/files/config.php) contain these settings.
+
+## Database connections and background work
+
+PgBouncer runs in separate read/write and read-only deployments. Their services connect Moodle to the primary PostgreSQL endpoint and the optional read replica. When the replica is disabled, Terraform uses the primary endpoint for both connection paths.
+
+Moodle cron runs in its own deployment with a `jobs` node selector. Web pods use the `app` workload label, and PgBouncer uses its own node selection. Each workload has configurable resource requests and limits.
+
+This split gives web traffic and background tasks separate placement and resource settings. The [PgBouncer manifests](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/manifests/20-pgbouncer.yaml) define the two database connection paths.
+
+## Availability and its boundaries
+
+The Moodle web and PgBouncer manifests prefer spreading replicas across Kubernetes hosts. PodDisruptionBudgets specify at least one available pod for each of those workloads during voluntary disruptions.
+
+The placement rules are soft constraints: pod anti-affinity is preferred, and topology spread uses `ScheduleAnyway`. Replica placement therefore needs to be checked on the running cluster. ACK node pools also use a single vSwitch in this configuration, so availability across zones needs a separate design review.
+
+RDS uses the `HighAvailability` category in the documented baseline. That setting covers the database tier; the application, Redis, and shared storage still need their own failure tests.
+
+These choices are visible in the [web deployment](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/manifests/30-moodle.yaml), [disruption budgets](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/manifests/21-pdb.yaml), and [ACK infrastructure](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/infra/ack.tf).
+
+## Deployment and day-to-day operations
+
+The bootstrap workflow creates the infrastructure, exports ACK credentials, then builds and pushes the Moodle and PgBouncer images to ACR Enterprise Edition. It uses a public registry endpoint for image pushes and a runtime endpoint for cluster pulls.
+
+Kubernetes manifests take environment variables for image references, replica counts, and resource limits. Those runtime values need to be supplied before the templates can be applied. After Redis initialization and Moodle database installation, the LoadBalancer service provides initial access by IP.
+
+The guide also covers private registry DNS failures, stale image pull credentials, and temporary ACK kubeconfig expiry. Image updates use fresh tags and rollout checks for the affected deployments.
+
+## Before production traffic
+
+The runtime checklist checks Redis session handling, cache mappings, PgBouncer endpoints, and write access to NAS before load testing. A basic inspection starts with:
+
+```bash
+kubectl -n moodle get pods -o wide
+kubectl -n moodle get svc pgbouncer-svc pgbouncer-read-svc
+kubectl -n moodle get endpoints pgbouncer-svc pgbouncer-read-svc
+```
+
+DNS, TLS, and a WAF/CDN edge stack are outside the default bootstrap setup. A production deployment needs those configured alongside workload-specific load and failure tests. The [runtime checklist](https://github.com/nikomireta/moodle-alibaba-ack-ha-blueprint/blob/main/manifests/README.md#backend-parity-checklist-before-load-test) describes the checks expected before a capacity test.

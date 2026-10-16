@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Desktop } from '@/components/desktop'
+import { ProfileCard } from '@/components/profile-card'
+import { ReposList } from '@/components/repos-list'
+import { BlogList } from '@/components/blog-list'
+import { getBlogEntries } from '@/lib/content'
 import './globals.css'
 
 const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -24,15 +29,18 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const entries = await getBlogEntries()
   return (
     <html lang="en">
       <body className={`${_inter.variable} ${_jetbrainsMono.variable} font-sans antialiased`}>
-        {children}
+        <Desktop profile={<ProfileCard />} repos={<ReposList />}
+          blog={<div className="desktop-editorial"><h1 className="repo-caption">Blog / Posts, case studies &amp; guides</h1><BlogList entries={entries} /><a className="desktop-rss" href="/blog/rss.xml">Subscribe via RSS ↗</a></div>}
+        >{children}</Desktop>
         <Analytics />
       </body>
     </html>

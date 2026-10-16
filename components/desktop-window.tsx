@@ -25,6 +25,7 @@ interface DesktopWindowProps {
   state: WindowState
   desktop: boolean
   active: boolean
+  blocked?: boolean
   layer: number
   bounds: { width: number; height: number }
   windowRef: (element: HTMLElement | null) => void
@@ -42,7 +43,7 @@ export function DesktopWindow(props: DesktopWindowProps) {
 
 function WindowSurface({
   id, label, title, icon, headerActions, children, width, state, desktop,
-  active, layer, bounds, windowRef, getDockTarget, onFocus, onMove,
+  active, blocked = false, layer, bounds, windowRef, getDockTarget, onFocus, onMove,
   onMinimize, onToggleMaximize, onClose,
 }: DesktopWindowProps) {
   const section = useRef<HTMLElement>(null)
@@ -58,7 +59,7 @@ function WindowSurface({
   const reduced = useReducedMotion()
   const present = useIsPresent()
   const maximized = state.mode === "maximized"
-  const interactive = present && state.visibility === "visible" && (desktop || active)
+  const interactive = present && !blocked && state.visibility === "visible" && (desktop || active)
   const movable = interactive && desktop && !maximized && state.position !== null
   const baseX = state.position?.x ?? 0
   const baseY = state.position?.y ?? 0
@@ -180,7 +181,7 @@ function WindowSurface({
             <div className="window-title">{icon}<span>{title}</span></div>
             {headerActions && <div className="window-header-actions">{headerActions}</div>}
           </motion.div>
-          <motion.div layout={reduced ? false : "position"} transition={{ layout: layoutTransition }} layoutScroll className="window-content">{children}</motion.div>
+          <motion.div layout={reduced ? false : "position"} transition={{ layout: layoutTransition }} layoutScroll className="window-content" role="region" aria-label={`${label} content`} tabIndex={interactive ? 0 : -1}>{children}</motion.div>
         </motion.section>
       </motion.div>
     </motion.div>

@@ -1,0 +1,70 @@
+---
+title: Reengineering SPH website infrastructure on Azure
+date: '2024-09-14'
+type: case-study
+summary: Server reengineering and website migration for SPH on Azure, with LiteSpeed caching, Cloudflare, and documentation for day-to-day operations.
+role: Primary implementer
+stack:
+  - Azure
+  - AlmaLinux
+  - WHM/cPanel
+  - LiteSpeed
+  - LSCache
+  - LSMCD
+  - Cloudflare
+  - WordPress
+---
+
+I handled the server reengineering and website migration for SPH from 7 to 14 September 2024. The work covered the Azure server setup and the move to LiteSpeed, followed by cache configuration and an operational handover.
+
+SPH needed a hosting setup that addressed website loading times and server security while keeping routine administration accessible through WHM/cPanel. The migration included the main WordPress website and the Summer website.
+
+## Server setup
+
+The target environment was an Azure virtual machine running AlmaLinux 9. A separate data disk held the hosting accounts and website files. WHM/cPanel provided account and website management, including database administration and backups.
+
+LiteSpeed replaced Apache as the web server. Its integration with WHM allowed cache management across the hosted websites, while the WordPress LSCache plugin provided settings for each site. LSMCD was included in the documented stack for object caching.
+
+## Moving the websites
+
+SPH supplied full website backups. The migration procedure covered extracting the files, restoring the database, and placing the websites under the new hosting account. File ownership and permissions were adjusted for the destination environment.
+
+Cache configuration followed the move. The documented LSCache setup used the Advanced preset, with browser and mobile caching, image optimization, and deferred JavaScript. Object caching used Memcached, and the Cloudflare integration provided cache controls from the WordPress dashboard.
+
+The cache settings had different jobs: page caching served cached pages, browser caching handled repeat requests for static files, and object caching reduced repeated database work.
+
+## Security configuration
+
+Azure network controls and the CSF host firewall were part of the server setup. Cloudflare Pro covered the public-facing DNS and edge configuration.
+
+The documented Cloudflare configuration included Full (Strict) encryption with an origin certificate, managed WAF rules, and HTTP DDoS protection. It also described how to review security events and manage custom rules.
+
+## Performance evidence
+
+The documentation includes PageSpeed Insights desktop screenshots for the main SPH website, comparing the old server with a server running LiteSpeed.
+
+<Callout title="Measurement dates">
+
+The screenshots are from August 2024 and predate the project period of 7 to 14 September 2024. They are historical reference measurements, not evidence of a performance change caused by the September work.
+
+</Callout>
+
+| Desktop metric | Old server screenshot | LiteSpeed server screenshot |
+| --- | --- | --- |
+| Performance score | 63 | 96 |
+| Largest Contentful Paint | 4.1 seconds | 1.2 seconds |
+| Best Practices score | 96 | 74 |
+
+The LiteSpeed screenshot shows a higher Performance score and a shorter LCP, alongside a lower Best Practices score. The drop in Best Practices remains a separate item to investigate.
+
+## Operational handover
+
+The handover documentation covered WHM/cPanel account management and routine website administration. It included database backup and restore procedures, SSL certificate management, and service restarts.
+
+Cloudflare cache purging and development mode were also documented so administrators could manage cached content during website updates.
+
+## Follow-up recommendations
+
+The document recorded plugin vulnerability findings for the main and Summer websites, with recommendations to enable protection or disable affected plugins. Those findings remained separate from the server migration. The available record does not confirm that every recommended plugin change was completed.
+
+A fresh PageSpeed test after the September work would be needed to report its performance outcome. Plugin remediation also needs its own verification before it can be described as complete.
